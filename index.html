@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>学中文 Learn Chinese!</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #FFF9F0;
+    --primary: #FF6B6B;
+    --yes: #51CF66;
+    --no: #FF6B6B;
+    --card-bg: #FFFFFF;
+    --shadow: 0 8px 40px rgba(0,0,0,0.12);
+  }
+
+  body {
+    font-family: 'Segoe UI', 'Arial Rounded MT Bold', Arial, sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
+    touch-action: none;
+  }
+
+  /* ─── Header ─── */
+  header {
+    width: 100%;
+    padding: 16px 20px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo { font-size: 1.5rem; font-weight: 900; color: #FF6B6B; }
+  .logo span { color: #FFD43B; }
+
+  .category-btn {
+    background: #fff;
+    border: 2px solid #FFD43B;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    color: #555;
+    transition: background 0.2s;
+  }
+  .category-btn:hover { background: #FFD43B; color: #333; }
+
+  /* ─── Score bar ─── */
+  .score-bar {
+    display: flex;
+    gap: 24px;
+    margin: 14px 0 8px;
+    font-size: 1rem;
+    font-weight: 800;
+  }
+  .score-item { display: flex; align-items: center; gap: 6px; }
+  .score-dot { width: 14px; height: 14px; border-radius: 50%; }
+  .score-dot.know { background: var(--yes); }
+  .score-dot.practice { background: var(--no); }
+
+  /* ─── Category picker ─── */
+  .category-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .category-overlay.open { display: flex; }
+  .category-box {
+    background: #fff;
+    border-radius: 24px;
+    padding: 28px 24px;
+    width: 320px;
+    max-width: 90vw;
+    box-shadow: var(--shadow);
+  }
+  .category-box h2 { text-align: center; margin-bottom: 18px; font-size: 1.3rem; }
+  .cat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .cat-item {
+    border: 2.5px solid #eee;
+    border-radius: 16px;
+    padding: 14px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .cat-item:hover, .cat-item.active { border-color: var(--primary); background: #FFF0F0; }
+  .cat-item .cat-emoji { font-size: 2rem; display: block; margin-bottom: 4px; }
+  .cat-item .cat-name { font-weight: 700; font-size: 0.9rem; }
+
+  /* ─── Card stack ─── */
+  .deck {
+    position: relative;
+    width: min(360px, 88vw);
+    height: min(460px, 56vh);
+    margin: 8px 0 0;
+    flex-shrink: 0;
+  }
+
+  .card {
+    position: absolute;
+    inset: 0;
+    background: var(--card-bg);
+    border-radius: 28px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.08s ease-out, box-shadow 0.08s;
+    will-change: transform;
+    overflow: hidden;
+  }
+
+  /* back cards peek effect */
+  .card:nth-child(2) { transform: translate(3px, 8px) rotate(1.5deg); z-index: 1; }
+  .card:nth-child(3) { transform: translate(-3px, 14px) rotate(-1deg); z-index: 0; }
+  .card.top { z-index: 10; }
+
+  .card-emoji { font-size: clamp(4rem, 14vw, 6rem); line-height: 1; }
+  .card-chinese {
+    font-size: clamp(3rem, 12vw, 5rem);
+    font-weight: 900;
+    color: #222;
+    line-height: 1;
+  }
+  .card-pinyin {
+    font-size: clamp(1.1rem, 4vw, 1.5rem);
+    color: #888;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+  .card-english {
+    font-size: clamp(1.3rem, 5vw, 1.8rem);
+    font-weight: 800;
+    color: #444;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .card.revealed .card-english { opacity: 1; }
+
+  .tap-hint {
+    font-size: 0.85rem;
+    color: #bbb;
+    font-weight: 600;
+    transition: opacity 0.3s;
+  }
+  .card.revealed .tap-hint { opacity: 0; }
+
+  /* swipe overlays */
+  .swipe-label {
+    position: absolute;
+    top: 28px;
+    font-size: 1.5rem;
+    font-weight: 900;
+    padding: 8px 18px;
+    border-radius: 12px;
+    border: 4px solid;
+    opacity: 0;
+    transform: rotate(-15deg);
+    transition: opacity 0.1s;
+    pointer-events: none;
+  }
+  .swipe-label.know { right: 24px; color: var(--yes); border-color: var(--yes); transform: rotate(15deg); }
+  .swipe-label.practice { left: 24px; color: var(--no); border-color: var(--no); }
+
+  /* ─── Swipe hint arrows ─── */
+  .swipe-hints {
+    display: flex;
+    justify-content: space-between;
+    width: min(360px, 88vw);
+    margin-top: 14px;
+    padding: 0 4px;
+  }
+  .hint-pill {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.85rem; font-weight: 700;
+    padding: 8px 16px;
+    border-radius: 20px;
+    opacity: 0.75;
+  }
+  .hint-pill.left { background: #FFE0E0; color: #E03131; }
+  .hint-pill.right { background: #D3F9D8; color: #2F9E44; }
+
+  /* ─── Celebration overlay ─── */
+  .celebrate {
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 200;
+  }
+  .confetti-piece {
+    position: absolute;
+    width: 10px; height: 14px;
+    opacity: 0;
+    animation: fall 1.4s ease-in forwards;
+  }
+  @keyframes fall {
+    0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+  }
+
+  /* ─── Done screen ─── */
+  .done-screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 16px;
+    padding: 32px 20px;
+  }
+  .done-screen.show { display: flex; }
+  .done-emoji { font-size: 5rem; }
+  .done-title { font-size: 2rem; font-weight: 900; color: #333; }
+  .done-sub { font-size: 1.1rem; color: #888; }
+  .restart-btn {
+    margin-top: 8px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 24px;
+    padding: 16px 40px;
+    font-size: 1.2rem;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(255,107,107,0.4);
+    transition: transform 0.15s;
+  }
+  .restart-btn:active { transform: scale(0.95); }
+
+  /* ─── Sound wave animation ─── */
+  .speak-btn {
+    position: absolute;
+    bottom: 18px;
+    right: 18px;
+    background: #F1F3F5;
+    border: none;
+    border-radius: 50%;
+    width: 44px; height: 44px;
+    font-size: 1.3rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+  }
+  .speak-btn:hover { background: #E9ECEF; }
+  .speak-btn.speaking { background: #D3F9D8; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">学<span>中</span>文</div>
+  <button class="category-btn" id="catBtn">🐼 Animals ▾</button>
+</header>
+
+<div class="score-bar">
+  <div class="score-item">
+    <div class="score-dot know"></div>
+    <span id="knowCount">0</span> Know it!
+  </div>
+  <div class="score-item">
+    <div class="score-dot practice"></div>
+    <span id="practiceCount">0</span> Practice
+  </div>
+</div>
+
+<!-- Category overlay -->
+<div class="category-overlay" id="catOverlay">
+  <div class="category-box">
+    <h2>Pick a Category 🎯</h2>
+    <div class="cat-grid" id="catGrid"></div>
+  </div>
+</div>
+
+<!-- Card deck -->
+<div class="deck" id="deck">
+  <!-- cards injected by JS -->
+</div>
+
+<!-- Swipe hint labels -->
+<div class="swipe-hints">
+  <div class="hint-pill left">← More practice</div>
+  <div class="hint-pill right">Know it! →</div>
+</div>
+
+<!-- Done screen -->
+<div class="done-screen" id="doneScreen">
+  <div class="done-emoji">🎉</div>
+  <div class="done-title">Great job!</div>
+  <div class="done-sub" id="doneSub"></div>
+  <button class="restart-btn" id="restartBtn">Play Again 🔄</button>
+</div>
+
+<!-- Confetti container -->
+<div class="celebrate" id="celebrate"></div>
+
+<script>
+const CATEGORIES = {
+  animals: {
+    label: '🐼 Animals',
+    emoji: '🐼',
+    cards: [
+      { zh: '猫', pinyin: 'māo', en: 'Cat', emoji: '🐱' },
+      { zh: '狗', pinyin: 'gǒu', en: 'Dog', emoji: '🐶' },
+      { zh: '鱼', pinyin: 'yú',  en: 'Fish', emoji: '🐟' },
+      { zh: '鸟', pinyin: 'niǎo', en: 'Bird', emoji: '🐦' },
+      { zh: '马', pinyin: 'mǎ',  en: 'Horse', emoji: '🐴' },
+      { zh: '猪', pinyin: 'zhū', en: 'Pig', emoji: '🐷' },
+      { zh: '牛', pinyin: 'niú', en: 'Cow', emoji: '🐮' },
+      { zh: '羊', pinyin: 'yáng', en: 'Sheep', emoji: '🐑' },
+    ]
+  },
+  colors: {
+    label: '🌈 Colors',
+    emoji: '🌈',
+    cards: [
+      { zh: '红', pinyin: 'hóng', en: 'Red', emoji: '🔴' },
+      { zh: '蓝', pinyin: 'lán',  en: 'Blue', emoji: '🔵' },
+      { zh: '绿', pinyin: 'lǜ',   en: 'Green', emoji: '🟢' },
+      { zh: '黄', pinyin: 'huáng', en: 'Yellow', emoji: '🟡' },
+      { zh: '粉', pinyin: 'fěn',  en: 'Pink', emoji: '🩷' },
+      { zh: '紫', pinyin: 'zǐ',   en: 'Purple', emoji: '🟣' },
+      { zh: '白', pinyin: 'bái',  en: 'White', emoji: '⚪' },
+      { zh: '黑', pinyin: 'hēi',  en: 'Black', emoji: '⚫' },
+    ]
+  },
+  numbers: {
+    label: '🔢 Numbers',
+    emoji: '🔢',
+    cards: [
+      { zh: '一', pinyin: 'yī',   en: 'One',   emoji: '1️⃣' },
+      { zh: '二', pinyin: 'èr',   en: 'Two',   emoji: '2️⃣' },
+      { zh: '三', pinyin: 'sān',  en: 'Three', emoji: '3️⃣' },
+      { zh: '四', pinyin: 'sì',   en: 'Four',  emoji: '4️⃣' },
+      { zh: '五', pinyin: 'wǔ',   en: 'Five',  emoji: '5️⃣' },
+      { zh: '六', pinyin: 'liù',  en: 'Six',   emoji: '6️⃣' },
+      { zh: '七', pinyin: 'qī',   en: 'Seven', emoji: '7️⃣' },
+      { zh: '八', pinyin: 'bā',   en: 'Eight', emoji: '8️⃣' },
+      { zh: '九', pinyin: 'jiǔ',  en: 'Nine',  emoji: '9️⃣' },
+      { zh: '十', pinyin: 'shí',  en: 'Ten',   emoji: '🔟' },
+    ]
+  },
+  greetings: {
+    label: '👋 Greetings',
+    emoji: '👋',
+    cards: [
+      { zh: '你好', pinyin: 'nǐ hǎo',    en: 'Hello',      emoji: '👋' },
+      { zh: '再见', pinyin: 'zài jiàn',  en: 'Goodbye',    emoji: '🤚' },
+      { zh: '谢谢', pinyin: 'xiè xie',   en: 'Thank you',  emoji: '🙏' },
+      { zh: '对不起', pinyin: 'duì bu qǐ', en: 'Sorry',    emoji: '😔' },
+      { zh: '好的', pinyin: 'hǎo de',    en: 'Okay',       emoji: '👍' },
+      { zh: '爱你', pinyin: 'ài nǐ',     en: 'Love you',   emoji: '❤️' },
+    ]
+  },
+  family: {
+    label: '👨‍👩‍👧 Family',
+    emoji: '👨‍👩‍👧',
+    cards: [
+      { zh: '爸爸', pinyin: 'bà ba',  en: 'Dad',       emoji: '👨' },
+      { zh: '妈妈', pinyin: 'mā ma',  en: 'Mum',       emoji: '👩' },
+      { zh: '哥哥', pinyin: 'gē ge',  en: 'Big brother', emoji: '👦' },
+      { zh: '姐姐', pinyin: 'jiě jie', en: 'Big sister', emoji: '👧' },
+      { zh: '弟弟', pinyin: 'dì di',  en: 'Little bro', emoji: '👦' },
+      { zh: '妹妹', pinyin: 'mèi mei', en: 'Little sis', emoji: '👧' },
+      { zh: '爷爷', pinyin: 'yé ye',  en: 'Grandpa',   emoji: '👴' },
+      { zh: '奶奶', pinyin: 'nǎi nai', en: 'Grandma',  emoji: '👵' },
+    ]
+  },
+};
+
+// ─── State ───────────────────────────────────────────
+let currentCat = 'animals';
+let queue = [];
+let knowCount = 0;
+let practiceCount = 0;
+let topCard = null;
+let revealed = false;
+
+// drag state
+let dragStartX = 0, dragStartY = 0;
+let dragging = false;
+let currentX = 0;
+
+// ─── Speak ───────────────────────────────────────────
+function speak(text) {
+  if (!window.speechSynthesis) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'zh-CN';
+  u.rate = 0.85;
+  speechSynthesis.speak(u);
+}
+
+// ─── Build category picker ───────────────────────────
+const catGrid = document.getElementById('catGrid');
+Object.entries(CATEGORIES).forEach(([key, cat]) => {
+  const el = document.createElement('div');
+  el.className = 'cat-item' + (key === currentCat ? ' active' : '');
+  el.innerHTML = `<span class="cat-emoji">${cat.emoji}</span><span class="cat-name">${cat.label}</span>`;
+  el.onclick = () => selectCategory(key);
+  catGrid.appendChild(el);
+});
+
+document.getElementById('catBtn').onclick = () => {
+  document.getElementById('catOverlay').classList.add('open');
+};
+document.getElementById('catOverlay').onclick = (e) => {
+  if (e.target === document.getElementById('catOverlay'))
+    document.getElementById('catOverlay').classList.remove('open');
+};
+
+function selectCategory(key) {
+  currentCat = key;
+  document.querySelectorAll('.cat-item').forEach((el, i) => {
+    el.classList.toggle('active', Object.keys(CATEGORIES)[i] === key);
+  });
+  document.getElementById('catBtn').textContent = CATEGORIES[key].label + ' ▾';
+  document.getElementById('catOverlay').classList.remove('open');
+  startDeck();
+}
+
+// ─── Build deck ──────────────────────────────────────
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function startDeck() {
+  knowCount = 0; practiceCount = 0;
+  document.getElementById('knowCount').textContent = 0;
+  document.getElementById('practiceCount').textContent = 0;
+  queue = shuffle(CATEGORIES[currentCat].cards);
+
+  document.getElementById('doneScreen').classList.remove('show');
+  const deck = document.getElementById('deck');
+  deck.innerHTML = '';
+  deck.style.display = '';
+
+  // render top 3 visually
+  renderCards();
+}
+
+function renderCards() {
+  const deck = document.getElementById('deck');
+  deck.innerHTML = '';
+  revealed = false;
+
+  const visible = queue.slice(0, 3);
+  visible.reverse().forEach((card, i) => {
+    const isTop = i === visible.length - 1;
+    const el = createCardEl(card, isTop);
+    deck.appendChild(el);
+  });
+
+  topCard = deck.querySelector('.card.top');
+  if (topCard) attachDrag(topCard);
+}
+
+function createCardEl(card, isTop) {
+  const el = document.createElement('div');
+  el.className = 'card' + (isTop ? ' top' : '');
+  el.innerHTML = `
+    <div class="swipe-label know">Know it! ✅</div>
+    <div class="swipe-label practice">Practice 🔄</div>
+    <div class="card-emoji">${card.emoji}</div>
+    <div class="card-chinese">${card.zh}</div>
+    <div class="card-pinyin">${card.pinyin}</div>
+    <div class="card-english">${card.en}</div>
+    <div class="tap-hint">👆 Tap to reveal</div>
+    <button class="speak-btn" title="Hear it">🔊</button>
+  `;
+
+  if (isTop) {
+    // tap to reveal
+    el.addEventListener('click', (e) => {
+      if (e.target.classList.contains('speak-btn')) {
+        speak(card.zh);
+        e.target.classList.add('speaking');
+        setTimeout(() => e.target.classList.remove('speaking'), 1200);
+        return;
+      }
+      if (Math.abs(currentX) > 5) return; // was a swipe, not tap
+      if (!revealed) {
+        el.classList.add('revealed');
+        revealed = true;
+        speak(card.zh);
+      }
+    });
+  }
+  return el;
+}
+
+// ─── Drag / swipe ────────────────────────────────────
+function attachDrag(el) {
+  // mouse
+  el.addEventListener('mousedown', onStart);
+  // touch
+  el.addEventListener('touchstart', onStart, { passive: true });
+}
+
+function onStart(e) {
+  if (!revealed) return;
+  dragging = true;
+  currentX = 0;
+  const pt = e.touches ? e.touches[0] : e;
+  dragStartX = pt.clientX;
+  dragStartY = pt.clientY;
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onEnd);
+  document.addEventListener('touchmove', onMove, { passive: false });
+  document.addEventListener('touchend', onEnd);
+}
+
+function onMove(e) {
+  if (!dragging) return;
+  if (e.cancelable) e.preventDefault();
+  const pt = e.touches ? e.touches[0] : e;
+  currentX = pt.clientX - dragStartX;
+  const currentY = pt.clientY - dragStartY;
+  const rotate = currentX * 0.08;
+
+  topCard.style.transform = `translate(${currentX}px, ${currentY * 0.3}px) rotate(${rotate}deg)`;
+  topCard.style.transition = 'none';
+
+  // show labels
+  const ratio = Math.min(Math.abs(currentX) / 80, 1);
+  topCard.querySelector('.swipe-label.know').style.opacity = currentX > 0 ? ratio : 0;
+  topCard.querySelector('.swipe-label.practice').style.opacity = currentX < 0 ? ratio : 0;
+}
+
+function onEnd() {
+  if (!dragging) return;
+  dragging = false;
+  document.removeEventListener('mousemove', onMove);
+  document.removeEventListener('mouseup', onEnd);
+  document.removeEventListener('touchmove', onMove);
+  document.removeEventListener('touchend', onEnd);
+
+  const threshold = 80;
+  if (currentX > threshold) {
+    flyOut('right');
+  } else if (currentX < -threshold) {
+    flyOut('left');
+  } else {
+    // snap back
+    topCard.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+    topCard.style.transform = '';
+    topCard.querySelector('.swipe-label.know').style.opacity = 0;
+    topCard.querySelector('.swipe-label.practice').style.opacity = 0;
+  }
+  currentX = 0;
+}
+
+function flyOut(dir) {
+  const x = dir === 'right' ? window.innerWidth * 1.5 : -window.innerWidth * 1.5;
+  topCard.style.transition = 'transform 0.5s ease-in, opacity 0.5s';
+  topCard.style.transform = `translate(${x}px, -80px) rotate(${dir === 'right' ? 30 : -30}deg)`;
+  topCard.style.opacity = '0';
+
+  if (dir === 'right') {
+    knowCount++;
+    document.getElementById('knowCount').textContent = knowCount;
+    confetti();
+  } else {
+    practiceCount++;
+    document.getElementById('practiceCount').textContent = practiceCount;
+  }
+
+  queue.shift();
+
+  setTimeout(() => {
+    if (queue.length === 0) {
+      showDone();
+    } else {
+      renderCards();
+    }
+  }, 420);
+}
+
+// ─── Done screen ─────────────────────────────────────
+function showDone() {
+  document.getElementById('deck').style.display = 'none';
+  const done = document.getElementById('doneScreen');
+  done.classList.add('show');
+  const total = knowCount + practiceCount;
+  document.getElementById('doneSub').textContent =
+    `You knew ${knowCount} out of ${total} words! ${knowCount === total ? '🌟 Perfect!' : '💪 Keep going!'}`;
+  confetti(80);
+}
+
+document.getElementById('restartBtn').onclick = startDeck;
+
+// ─── Confetti ────────────────────────────────────────
+function confetti(count = 30) {
+  const el = document.getElementById('celebrate');
+  el.innerHTML = '';
+  const colors = ['#FF6B6B','#FFD43B','#51CF66','#74C0FC','#F783AC','#FF922B'];
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti-piece';
+    p.style.cssText = `
+      left: ${Math.random() * 100}%;
+      background: ${colors[Math.floor(Math.random() * colors.length)]};
+      animation-delay: ${Math.random() * 0.6}s;
+      animation-duration: ${0.9 + Math.random() * 0.8}s;
+      border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
+      transform: rotate(${Math.random() * 360}deg);
+    `;
+    el.appendChild(p);
+  }
+  setTimeout(() => { el.innerHTML = ''; }, 2000);
+}
+
+// ─── Init ─────────────────────────────────────────────
+startDeck();
+</script>
+</body>
+</html>
