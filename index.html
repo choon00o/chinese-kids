@@ -236,6 +236,17 @@
     display: inline-block;
     transition: transform 0.2s;
   }
+  @keyframes speakPulse {
+    0%   { transform: scale(1); }
+    25%  { transform: scale(1.18); }
+    50%  { transform: scale(0.95); }
+    75%  { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
+  .card-emoji.speaking { animation: speakPulse 0.5s ease forwards; }
+  .card-chinese.speaking { animation: speakPulse 0.5s ease forwards; }
+  .card-pinyin.speaking { animation: speakPulse 0.5s ease forwards; }
+
   @keyframes emojiPop {
     0%   { transform: scale(1) rotate(0deg); }
     20%  { transform: scale(1.5) rotate(-10deg); }
@@ -909,10 +920,24 @@ function createCardEl(card, isTop) {
     <button class="speak-btn" title="Hear it">🔊</button>
   `;
 
+  function triggerSpeakAnim() {
+    const emojiEl  = el.querySelector('.card-emoji');
+    const wordEl   = el.querySelector('.card-chinese');
+    const pinyinEl = el.querySelector('.card-pinyin');
+    [emojiEl, wordEl, pinyinEl].forEach(node => {
+      if (!node) return;
+      node.classList.remove('speaking');
+      void node.offsetWidth; // reflow to restart animation
+      node.classList.add('speaking');
+      setTimeout(() => node.classList.remove('speaking'), 500);
+    });
+  }
+
   if (isTop) {
     el.addEventListener('click', (e) => {
       if (e.target.classList.contains('speak-btn')) {
         speak(word);
+        triggerSpeakAnim();
         e.target.classList.add('speaking');
         setTimeout(() => e.target.classList.remove('speaking'), 1200);
         return;
@@ -922,7 +947,11 @@ function createCardEl(card, isTop) {
         el.classList.add('revealed');
         revealed = true;
         speak(word);
+        triggerSpeakAnim();
         document.getElementById('swipeContinue').classList.add('show');
+      } else {
+        speak(word);
+        triggerSpeakAnim();
       }
     });
   }
