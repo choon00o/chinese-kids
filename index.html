@@ -20,20 +20,23 @@
     font-family: 'Segoe UI', 'Arial Rounded MT Bold', Arial, sans-serif;
     background: var(--bg);
     min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
     align-items: center;
-    overflow: hidden;
-    touch-action: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+    touch-action: pan-y;
   }
 
   /* ─── Header ─── */
   header {
     width: 100%;
-    padding: 16px 20px 0;
+    padding: 16px 16px 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 8px;
   }
 
   .logo {
@@ -53,28 +56,19 @@
   .logo .play  { color: #FFD43B; }
 
   /* ─── Native language selector ─── */
-  .native-row {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 8px 20px 0;
-    font-size: 0.82rem;
-    font-weight: 700;
-    color: #aaa;
-  }
   .native-select {
     border: 2px solid #E9ECEF;
     border-radius: 14px;
-    padding: 5px 10px;
-    font-size: 0.82rem;
+    padding: 5px 8px;
+    font-size: 0.78rem;
     font-weight: 700;
     font-family: inherit;
     background: #fff;
     color: #555;
     cursor: pointer;
     outline: none;
+    white-space: nowrap;
+    max-width: 120px;
     transition: border-color 0.2s;
   }
   .native-select:focus { border-color: #FF6B6B; }
@@ -82,7 +76,7 @@
   /* ─── Language selector ─── */
   .lang-strip {
     width: 100%;
-    padding: 44px 16px 0;
+    padding: 10px 16px 0;
     display: flex;
     gap: 8px;
     overflow-x: auto;
@@ -113,11 +107,12 @@
     background: #fff;
     border: 2px solid #FFD43B;
     border-radius: 20px;
-    padding: 6px 14px;
-    font-size: 0.85rem;
+    padding: 6px 10px;
+    font-size: 0.8rem;
     font-weight: 700;
     cursor: pointer;
     color: #555;
+    white-space: nowrap;
     transition: background 0.2s;
   }
   .category-btn:hover { background: #FFD43B; color: #333; }
@@ -125,9 +120,9 @@
   /* ─── Score bar ─── */
   .score-bar {
     display: flex;
-    gap: 24px;
-    margin: 14px 0 8px;
-    font-size: 1rem;
+    gap: 16px;
+    margin: 8px 0 4px;
+    font-size: 0.9rem;
     font-weight: 800;
   }
   .score-item { display: flex; align-items: center; gap: 6px; }
@@ -175,7 +170,7 @@
   .deck {
     position: relative;
     width: min(360px, 88vw);
-    height: min(460px, 56vh);
+    height: min(420px, 48vh);
     margin: 8px 0 0;
     flex-shrink: 0;
   }
@@ -303,7 +298,7 @@
     display: flex;
     justify-content: space-between;
     width: min(360px, 88vw);
-    margin-top: 48px;
+    margin-top: 16px;
     padding: 0 4px;
     gap: 32px;
   }
@@ -405,6 +400,25 @@
   }
   .speak-btn:hover { background: #E9ECEF; }
   .speak-btn.speaking { background: #D3F9D8; }
+
+  /* ─── Mobile / small screen fixes ─── */
+  @media (max-height: 700px) {
+    .deck { height: min(360px, 44vh); }
+    .card-emoji { font-size: clamp(2.8rem, 11vw, 4.5rem); }
+    .card-chinese { font-size: clamp(2.2rem, 9vw, 4rem); }
+    .swipe-hints { margin-top: 10px; }
+    .progress-wrap { margin: 4px 0 2px; }
+    .score-bar { margin: 4px 0 2px; }
+    .lang-strip { padding: 6px 16px 0; }
+  }
+
+  @media (max-width: 380px) {
+    .logo { font-size: 1.1rem; padding: 5px 12px; }
+    .native-select { max-width: 90px; font-size: 0.72rem; }
+    .category-btn { font-size: 0.72rem; padding: 5px 8px; }
+    .lang-pill { font-size: 0.78rem; padding: 5px 10px; }
+    .hint-pill { font-size: 0.78rem; padding: 6px 10px; }
+  }
 
   /* ─── Progress bar ─── */
   .progress-wrap {
